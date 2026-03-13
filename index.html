@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FiTracker"/>
+<meta name="theme-color" content="#070707"/>
+<title>FiTracker</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#070707;color:#f0f0f0;font-family:'IBM Plex Mono',monospace;-webkit-tap-highlight-color:transparent;overflow:hidden;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:#252525;}
+input,textarea,select,button{font-family:'IBM Plex Mono',monospace;color:#f0f0f0;}
+input[type=range]{accent-color:#c8ff00;width:100%;cursor:pointer;}
+button{cursor:pointer;border:none;background:none;}
+textarea{resize:none;}
+#app{height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;}
+#scr{flex:1;overflow-y:auto;padding-bottom:20px;}
+.pg{padding:24px 20px 20px;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* FAB */
+#fab{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));right:20px;width:54px;height:54px;border-radius:50%;background:#c8ff00;color:#000;font-size:20px;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 24px rgba(200,255,0,.35);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+#fab:active{transform:scale(.93);}
+#fab.open{background:#f0f0f0;}
+
+/* Menu overlay */
+#menu-ol{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;flex-direction:column;justify-content:flex-end;backdrop-filter:blur(3px);}
+#menu-ol.hidden{display:none!important;}
+#menu-sheet{background:#0d0d0d;border-top:1px solid #252525;border-radius:20px 20px 0 0;padding:12px 8px calc(20px + env(safe-area-inset-bottom,0px));animation:slideUp .22s cubic-bezier(.32,.72,0,1);}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.menu-handle{width:36px;height:4px;background:#333;border-radius:2px;margin:0 auto 16px;}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 8px;}
+.mnu-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:10px;background:#141414;border:1px solid #252525;cursor:pointer;text-align:center;transition:border-color .12s,background .12s;}
+.mnu-item.on{border-color:#c8ff00;background:#1a1f00;}
+.mnu-item .mni{font-size:26px;}
+.mnu-item .mnl{font-size:9px;color:#4a4a4a;letter-spacing:1px;}
+.mnu-item.on .mnl{color:#c8ff00;}
+.mnu-settings{grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:12px;padding:12px 16px;}
+
+/* Buttons */
+.btn{padding:9px 18px;border-radius:4px;font-size:13px;font-weight:500;border:1px solid #252525;background:#1c1c1c;color:#f0f0f0;cursor:pointer;}
+.sm{padding:5px 10px;font-size:11px;}
+.ba{background:#c8ff00!important;color:#000!important;border-color:#c8ff00!important;font-weight:600;}
+.bg{background:transparent!important;color:#4a4a4a!important;border-color:#252525!important;}
+.bd{background:transparent!important;color:#ff4040!important;border-color:#ff4040!important;}
+.fw{width:100%;}
+.inp{background:#141414;border:1px solid #252525;color:#f0f0f0;padding:8px 12px;border-radius:4px;font-size:13px;width:100%;outline:none;}
+.inp:focus{border-color:#c8ff00;}
+.bebas{font-family:'Bebas Neue',cursive;}
+.ac{color:#c8ff00;}
+.mu{color:#4a4a4a;}
+.tc{text-align:center;}
+.row{display:flex;gap:8px;align-items:center;}
+.card{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:16px;}
+.stitle{font-size:10px;color:#4a4a4a;letter-spacing:2px;margin-bottom:10px;}
+.tag{background:#1c1c1c;border:1px solid #252525;border-radius:3px;padding:2px 8px;font-size:10px;color:#4a4a4a;letter-spacing:1px;}
+.hidden{display:none!important;}
+.hc{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:20px 22px;display:flex;align-items:center;gap:20px;cursor:pointer;width:100%;text-align:left;margin-bottom:14px;transition:border-color .15s,background .15s;}
+.hc:active{border-color:#c8ff00;background:#141414;}
+.ttab{flex:1;padding:8px 4px;border-radius:4px;border:1px solid #252525;background:#141414;color:#4a4a4a;font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;}
+.ttab.on{background:#c8ff00;border-color:#c8ff00;color:#000;}
+.ts{display:none;}.ts.on{display:block;}
+.cal{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:16px;margin-bottom:20px;}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cdow{text-align:center;font-size:9px;color:#4a4a4a;padding:4px 0;}
+.cday{aspect-ratio:1;border-radius:6px;border:1px solid #252525;background:transparent;color:#f0f0f0;font-size:12px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;}
+.cday.sel{background:#c8ff00;border-color:#c8ff00;color:#000;}
+.cday.dot::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#c8ff00;}
+.cday.sel.dot::after{background:#000;}
+.excard{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:14px;margin-bottom:12px;}
+.sgrid{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;}
+.shdr{font-size:9px;color:#4a4a4a;text-align:center;}
+.sinp{background:#141414;border:1px solid #252525;color:#f0f0f0;padding:6px 4px;border-radius:4px;font-size:18px;text-align:center;font-family:'Bebas Neue',cursive;width:100%;outline:none;}
+.extags{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto;margin-bottom:12px;}
+.extag{background:#141414;border:1px solid #252525;color:#f0f0f0;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;}
+.extag:active{border-color:#c8ff00;}
+.addbox{background:#0d0d0d;border:1px dashed #252525;border-radius:8px;padding:14px;}
+.ecard{background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 14px;margin-bottom:6px;width:100%;text-align:left;cursor:pointer;display:block;}
+.ecard.on{border-color:#c8ff00;background:#141414;}
+.mtbtn{padding:5px 10px;border-radius:4px;border:1px solid #252525;background:transparent;color:#4a4a4a;font-size:11px;cursor:pointer;}
+.mtbtn.on{background:#c8ff00;border-color:#c8ff00;color:#000;}
+.mitem{background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 14px;margin-bottom:6px;}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pcard{background:#0d0d0d;border:1px solid #252525;border-radius:8px;overflow:hidden;cursor:pointer;width:100%;text-align:left;padding:0;}
+.pcard img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
+.lbox{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.lbox img{max-width:100%;max-height:65vh;object-fit:contain;border-radius:4px;}
+.empty{text-align:center;padding:60px 20px;color:#4a4a4a;font-size:12px;border:1px dashed #252525;border-radius:8px;}
+#sw-main{font-family:'Bebas Neue',cursive;font-size:64px;line-height:1;letter-spacing:2px;}
+
+/* Settings */
+.sett-section{margin-bottom:28px;}
+.sett-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #1a1a1a;}
+.sett-row:last-child{border-bottom:none;}
+.bg-swatches{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.bg-swatch{width:44px;height:44px;border-radius:8px;border:2px solid #252525;cursor:pointer;transition:border-color .12s,transform .12s;}
+.bg-swatch.on{border-color:#c8ff00;transform:scale(1.1);}
+.bg-swatch:active{transform:scale(.95);}
+.meal-chip{display:inline-flex;align-items:center;gap:6px;background:#141414;border:1px solid #252525;border-radius:4px;padding:5px 10px;font-size:11px;margin:3px;}
+.meal-chip button{font-size:12px;color:#ff4040;padding:0 2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="scr">
+
+    <!-- HOME -->
+    <div id="p-home" class="pg">
+      <div style="margin-bottom:40px">
+        <div class="bebas" style="font-size:52px;color:#c8ff00;line-height:1">Fi<span style="color:#f0f0f0">Tracker</span></div>
+        <div style="font-size:11px;color:#4a4a4a;letter-spacing:3px;margin-top:4px">IL TUO SPAZIO DI ALLENAMENTO</div>
+      </div>
+      <button class="hc" onclick="go('timers')"><span style="font-size:32px">⏱</span><div><div class="bebas ac" style="font-size:26px;letter-spacing:2px">TIMER</div><div style="font-size:11px;color:#4a4a4a;margin-top:2px">Countdown · Stopwatch · Interval</div></div><span style="margin-left:auto;color:#4a4a4a;font-size:18px">›</span></button>
+      <button class="hc" onclick="go('workout')"><span style="font-size:32px">🏋</span><div><div class="bebas ac" style="font-size:26px;letter-spacing:2px">ALLENAMENTO</div><div style="font-size:11px;color:#4a4a4a;margin-top:2px">Registro esercizi e pesi</div></div><span style="margin-left:auto;color:#4a4a4a;font-size:18px">›</span></button>
+      <button class="hc" onclick="go('journal')"><span style="font-size:32px">📓</span><div><div class="bebas ac" style="font-size:26px;letter-spacing:2px">DIARIO FITNESS</div><div style="font-size:11px;color:#4a4a4a;margin-top:2px">Note giornaliere</div></div><span style="margin-left:auto;color:#4a4a4a;font-size:18px">›</span></button>
+      <button class="hc" onclick="go('nutrition')"><span style="font-size:32px">🥗</span><div><div class="bebas ac" style="font-size:26px;letter-spacing:2px">NUTRIZIONE</div><div style="font-size:11px;color:#4a4a4a;margin-top:2px">Diario pasti</div></div><span style="margin-left:auto;color:#4a4a4a;font-size:18px">›</span></button>
+      <button class="hc" onclick="go('photos')"><span style="font-size:32px">📸</span><div><div class="bebas ac" style="font-size:26px;letter-spacing:2px">PROGRESSI</div><div style="font-size:11px;color:#4a4a4a;margin-top:2px">Archivio fotografico</div></div><span style="margin-left:auto;color:#4a4a4a;font-size:18px">›</span></button>
+    </div>
+
+    <!-- TIMERS -->
+    <div id="p-timers" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:20px">TIMER</div>
+      <div style="display:flex;gap:6px;margin-bottom:28px">
+        <button class="ttab on" id="tt-cd" onclick="setTTab('cd')">COUNTDOWN</button>
+        <button class="ttab" id="tt-sw" onclick="setTTab('sw')">STOPWATCH</button>
+        <button class="ttab" id="tt-it" onclick="setTTab('it')">INTERVAL</button>
+      </div>
+
+      <!-- COUNTDOWN -->
+      <div id="ts-cd" class="ts on">
+        <div class="tc" style="margin-bottom:20px">
+          <svg width="220" height="220">
+            <circle cx="110" cy="110" r="90" fill="none" stroke="#252525" stroke-width="6"/>
+            <circle id="cd-arc" cx="110" cy="110" r="90" fill="none" stroke="#c8ff00" stroke-width="6"
+              stroke-dasharray="565.49" stroke-dashoffset="0" stroke-linecap="round"
+              transform="rotate(-90 110 110)" style="transition:stroke-dashoffset .9s ease"/>
+            <text id="cd-txt" x="110" y="108" text-anchor="middle" font-family="'Bebas Neue',cursive" font-size="52" fill="#f0f0f0">05:00</text>
+            <text id="cd-done" x="110" y="130" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="12" fill="#00e87a" opacity="0">COMPLETATO</text>
+          </svg>
+        </div>
+        <div id="cd-sliders" style="display:flex;gap:12px;justify-content:center;margin-bottom:24px">
+          <div class="tc">
+            <div class="stitle">MINUTI</div>
+            <input type="range" min="0" max="59" step="1" value="5" id="cd-m" oninput="cdUpdate()" style="width:120px"/>
+            <div class="bebas ac" style="font-size:28px" id="cd-mv">05</div>
+          </div>
+          <div class="tc">
+            <div class="stitle">SECONDI</div>
+            <input type="range" min="0" max="59" step="1" value="0" id="cd-s" oninput="cdUpdate()" style="width:120px"/>
+            <div class="bebas ac" style="font-size:28px" id="cd-sv">00</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button id="cd-startbtn" class="btn ba" onclick="cdStart()">▶ START</button>
+          <button id="cd-pausebtn" class="btn hidden" onclick="cdPause()">⏸ PAUSA</button>
+          <button class="btn bg" onclick="cdReset()">↺ RESET</button>
+        </div>
+      </div>
+
+      <!-- STOPWATCH -->
+      <div id="ts-sw" class="ts">
+        <div class="tc" style="margin-bottom:24px">
+          <span id="sw-main">00:00</span><span id="sw-ms" style="font-family:'Bebas Neue',cursive;font-size:28px;color:#4a4a4a">.00</span>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px">
+          <button id="sw-startbtn" class="btn ba" onclick="swStart()">▶ START</button>
+          <button id="sw-stopbtn" class="btn hidden" onclick="swStop()">⏸ STOP</button>
+          <button id="sw-lapbtn" class="btn hidden" onclick="swLap()">◉ LAP</button>
+          <button class="btn bg" onclick="swReset()">↺ RESET</button>
+        </div>
+        <div id="sw-laps" class="hidden" style="max-height:200px;overflow-y:auto;border-top:1px solid #252525;padding-top:12px;margin-top:4px"></div>
+      </div>
+
+      <!-- INTERVAL — step=1 per entrambi -->
+      <div id="ts-it" class="ts">
+        <div id="it-cfg">
+          <div style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#4a4a4a;margin-bottom:4px"><span>LAVORO (sec)</span><span class="bebas ac" style="font-size:18px" id="it-wv">40</span></div>
+            <input type="range" min="1" max="300" step="1" value="40" id="it-w" oninput="document.getElementById('it-wv').textContent=this.value"/>
+          </div>
+          <div style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#4a4a4a;margin-bottom:4px"><span>RIPOSO (sec)</span><span class="bebas ac" style="font-size:18px" id="it-rv">20</span></div>
+            <input type="range" min="1" max="120" step="1" value="20" id="it-r" oninput="document.getElementById('it-rv').textContent=this.value"/>
+          </div>
+          <div style="margin-bottom:24px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#4a4a4a;margin-bottom:4px"><span>ROUNDS</span><span class="bebas ac" style="font-size:18px" id="it-nv">8</span></div>
+            <input type="range" min="1" max="30" step="1" value="8" id="it-n" oninput="document.getElementById('it-nv').textContent=this.value"/>
+          </div>
+          <div id="it-done-msg" class="bebas tc hidden" style="font-size:28px;color:#00e87a;margin-bottom:16px">COMPLETATO! 🔥</div>
+          <button class="btn ba fw" onclick="itStart()">▶ INIZIA</button>
+        </div>
+        <div id="it-run" class="hidden tc">
+          <svg width="200" height="200" style="margin-bottom:16px">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#252525" stroke-width="8"/>
+            <circle id="it-arc" cx="100" cy="100" r="80" fill="none" stroke="#c8ff00" stroke-width="8"
+              stroke-dasharray="502.65" stroke-dashoffset="502.65" stroke-linecap="round"
+              transform="rotate(-90 100 100)" style="transition:stroke-dashoffset .9s ease"/>
+            <text id="it-phase" x="100" y="88" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="11" fill="#4a4a4a">LAVORO</text>
+            <text id="it-time" x="100" y="126" text-anchor="middle" font-family="'Bebas Neue',cursive" font-size="58" fill="#c8ff00">40</text>
+          </svg>
+          <div style="margin-bottom:20px"><span style="font-size:11px;color:#4a4a4a">ROUND </span><span class="bebas" id="it-round" style="font-size:22px">1 / 8</span></div>
+          <button class="btn bd" onclick="itStop()">■ STOP</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKOUT -->
+    <div id="p-workout" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:20px">ALLENAMENTO</div>
+      <div class="cal" id="wk-cal"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="bebas" style="font-size:22px" id="wk-date-lbl"></div>
+        <span class="tag" id="wk-count"></span>
+      </div>
+      <div id="wk-exlist"></div>
+      <div class="addbox">
+        <div class="stitle">AGGIUNGI ESERCIZIO</div>
+        <div class="extags" id="wk-extags"></div>
+        <div id="wk-addrow"><button class="btn sm" onclick="wkShowAdd()">+ PERSONALIZZATO</button></div>
+      </div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div id="p-journal" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:6px">DIARIO FITNESS</div>
+      <div style="font-size:11px;color:#4a4a4a;margin-bottom:24px">Note giornaliere</div>
+      <div class="row" style="margin-bottom:16px">
+        <input type="date" class="inp" id="jn-date" style="flex:1" onchange="jnLoad()"/>
+        <button class="btn sm" onclick="jnToday()">OGGI</button>
+      </div>
+      <textarea class="inp" id="jn-text" placeholder="Scrivi le tue note..." oninput="jnSave()" style="min-height:200px;line-height:1.8;padding:16px;display:block"></textarea>
+      <div id="jn-hint" style="font-size:10px;color:#4a4a4a;text-align:right;margin-top:4px"></div>
+      <div id="jn-history" style="margin-top:28px"></div>
+    </div>
+
+    <!-- NUTRITION -->
+    <div id="p-nutrition" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:6px">NUTRIZIONE</div>
+      <div style="font-size:11px;color:#4a4a4a;margin-bottom:20px">Traccia cosa mangi</div>
+      <div class="row" style="margin-bottom:20px">
+        <input type="date" class="inp" id="nt-date" style="flex:1" onchange="ntLoad()"/>
+        <button class="btn sm" onclick="ntToday()">OGGI</button>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="stitle" style="margin:0">AGGIUNGI PASTO</div>
+          <button class="btn sm" onclick="ntToggleMgr()" id="nt-mgr-btn">⚙ TIPI</button>
+        </div>
+        <!-- Gestione tipi pasto -->
+        <div id="nt-mgr" class="hidden" style="background:#141414;border:1px solid #252525;border-radius:6px;padding:12px;margin-bottom:12px">
+          <div class="stitle">TIPI DI PASTO</div>
+          <div id="nt-chips" style="margin-bottom:10px"></div>
+          <div class="row">
+            <input class="inp" id="nt-new-type" style="flex:1;font-size:12px" placeholder="Nuovo tipo (es. Spuntino post scuola)" onkeydown="if(event.key==='Enter')ntAddType()"/>
+            <button class="btn sm ba" onclick="ntAddType()">+</button>
+          </div>
+        </div>
+        <div id="nt-types" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+        <div class="row">
+          <input class="inp" id="nt-inp" style="flex:1" placeholder="Es: Uova, avocado, caffè…" onkeydown="if(event.key==='Enter')ntAdd()"/>
+          <button class="btn ba" onclick="ntAdd()">+</button>
+        </div>
+      </div>
+      <div id="nt-list"></div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div id="p-photos" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:6px">PROGRESSI</div>
+      <div style="font-size:11px;color:#4a4a4a;margin-bottom:20px">Archivio fotografico</div>
+      <div class="card" style="margin-bottom:24px">
+        <div class="stitle">AGGIUNGI FOTO</div>
+        <div class="row" style="margin-bottom:10px">
+          <input type="date" class="inp" id="ph-date" style="flex:1"/>
+          <button class="btn sm" onclick="document.getElementById('ph-date').value=todayStr()">OGGI</button>
+        </div>
+        <input class="inp" id="ph-note" placeholder="Nota opzionale" style="margin-bottom:10px"/>
+        <input type="file" id="ph-file" accept="image/*" multiple style="display:none" onchange="phAdd(this)"/>
+        <button class="btn ba fw" style="padding:10px" onclick="document.getElementById('ph-file').click()">📷 CARICA FOTO</button>
+      </div>
+      <div id="ph-grid"></div>
+      <div id="ph-lbox" class="hidden lbox" onclick="phCloseLbox()"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="p-settings" class="pg hidden">
+      <div class="bebas ac" style="font-size:40px;margin-bottom:6px">IMPOSTAZIONI</div>
+      <div style="font-size:11px;color:#4a4a4a;margin-bottom:28px">Personalizza l'app</div>
+
+      <!-- Sfondo -->
+      <div class="sett-section">
+        <div class="bebas" style="font-size:20px;letter-spacing:2px;margin-bottom:14px;border-bottom:1px solid #252525;padding-bottom:8px">🎨 SFONDO</div>
+
+        <div class="stitle">COLORI PREDEFINITI</div>
+        <div class="bg-swatches" id="bg-swatches">
+          <button class="bg-swatch on" data-color="#070707" style="background:#070707" onclick="setBg('#070707',this)" title="Nero (default)"></button>
+          <button class="bg-swatch" data-color="#0a0a1a" style="background:#0a0a1a" onclick="setBg('#0a0a1a',this)" title="Blu notte"></button>
+          <button class="bg-swatch" data-color="#0a1a0a" style="background:#0a1a0a" onclick="setBg('#0a1a0a',this)" title="Verde notte"></button>
+          <button class="bg-swatch" data-color="#1a0a0a" style="background:#1a0a0a" onclick="setBg('#1a0a0a',this)" title="Rosso scuro"></button>
+          <button class="bg-swatch" data-color="#141014" style="background:#141014" onclick="setBg('#141014',this)" title="Viola scuro"></button>
+          <button class="bg-swatch" data-color="#0f0f0f" style="background:#0f0f0f;border-color:#444" onclick="setBg('#0f0f0f',this)" title="Grigio antracite"></button>
+        </div>
+
+        <div class="stitle" style="margin-top:14px">COLORE PERSONALIZZATO</div>
+        <div class="row" style="margin-bottom:18px">
+          <input type="color" id="bg-custom-color" value="#070707" style="width:48px;height:38px;border:1px solid #252525;border-radius:4px;background:#141414;cursor:pointer;padding:2px;"/>
+          <button class="btn ba" onclick="setBgCustomColor()">APPLICA COLORE</button>
+        </div>
+
+        <div class="stitle">IMMAGINE DI SFONDO</div>
+        <input type="file" id="bg-img-file" accept="image/*" style="display:none" onchange="setBgImg(this)"/>
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn fw" style="border-style:dashed" onclick="document.getElementById('bg-img-file').click()">📁 CARICA IMMAGINE</button>
+        </div>
+        <div id="bg-img-preview" class="hidden" style="margin-bottom:10px">
+          <div style="font-size:10px;color:#4a4a4a;margin-bottom:6px">Immagine attiva</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <img id="bg-img-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #252525"/>
+            <button class="btn sm bd" onclick="removeBgImg()">✕ RIMUOVI</button>
+          </div>
+        </div>
+
+        <button class="btn bg fw" onclick="resetBg()" style="margin-top:6px">↺ RIPRISTINA DEFAULT</button>
+      </div>
+
+      <!-- Info -->
+      <div class="sett-section">
+        <div class="bebas" style="font-size:20px;letter-spacing:2px;margin-bottom:14px;border-bottom:1px solid #252525;padding-bottom:8px">ℹ️ INFO</div>
+        <div class="sett-row"><span style="font-size:12px;color:#4a4a4a">Versione</span><span style="font-size:12px">1.1.0</span></div>
+        <div class="sett-row"><span style="font-size:12px;color:#4a4a4a">App</span><span style="font-size:12px">FiTracker PWA</span></div>
+        <div class="sett-row"><span style="font-size:12px;color:#4a4a4a">Dati</span><span style="font-size:12px">Salvati localmente</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FAB -->
+  <button id="fab" onclick="toggleMenu()">☰</button>
+
+  <!-- Menu overlay -->
+  <div id="menu-ol" class="hidden" onclick="closeMenu()">
+    <div id="menu-sheet" onclick="event.stopPropagation()">
+      <div class="menu-handle"></div>
+      <div class="menu-grid">
+        <button class="mnu-item" data-p="home" onclick="goMenu('home')"><span class="mni">⊞</span><span class="mnl">HOME</span></button>
+        <button class="mnu-item" data-p="timers" onclick="goMenu('timers')"><span class="mni">⏱</span><span class="mnl">TIMER</span></button>
+        <button class="mnu-item" data-p="workout" onclick="goMenu('workout')"><span class="mni">🏋</span><span class="mnl">WORKOUT</span></button>
+        <button class="mnu-item" data-p="journal" onclick="goMenu('journal')"><span class="mni">📓</span><span class="mnl">DIARIO</span></button>
+        <button class="mnu-item" data-p="nutrition" onclick="goMenu('nutrition')"><span class="mni">🥗</span><span class="mnl">DIETA</span></button>
+        <button class="mnu-item" data-p="photos" onclick="goMenu('photos')"><span class="mni">📸</span><span class="mnl">FOTO</span></button>
+        <button class="mnu-item mnu-settings" data-p="settings" onclick="goMenu('settings')"><span class="mni">⚙️</span><span class="mnl">IMPOSTAZIONI</span></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const MONTHS=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const WDAYS=['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+const DEF_MEAL_TYPES=['Colazione','Pranzo','Cena','Spuntino','Pre-workout','Post-workout'];
+const DEF_EX=['Squat','Stacco','Panca Piana','Panca Inclinata','Military Press','Trazioni','Rematore','Curl Bilanciere','Curl Manubri','Tricep Pushdown','Dip','Leg Press','Leg Curl','Calf Raise','Plank','Crunch','Lat Machine','Shoulder Press','Lateral Raise','Romanian Deadlift'];
+const LS={get:(k,fb)=>{try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb;}catch{return fb;}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
+function beep(f,d,v){f=f||880;d=d||0.12;v=v||0.3;try{var ctx=new(window.AudioContext||window.webkitAudioContext)(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;g.gain.setValueAtTime(v,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d);o.start();o.stop(ctx.currentTime+d);}catch(e){}}
+
+// ROUTER
+var curPage='home';
+function go(p){
+  if(p!==curPage){cdPause();swStop();itStop();}
+  curPage=p;
+  document.querySelectorAll('.pg').forEach(function(el){el.classList.add('hidden');});
+  document.getElementById('p-'+p).classList.remove('hidden');
+  document.getElementById('scr').scrollTop=0;
+  if(p==='workout')wkInit();
+  if(p==='journal')jnInit();
+  if(p==='nutrition')ntInit();
+  if(p==='photos')phInit();
+  if(p==='settings')settInit();
+}
+function goMenu(p){closeMenu();go(p);}
+
+// HAMBURGER MENU
+function toggleMenu(){
+  var ol=document.getElementById('menu-ol');
+  var fab=document.getElementById('fab');
+  var isOpen=!ol.classList.contains('hidden');
+  if(isOpen){closeMenu();}
+  else{
+    ol.classList.remove('hidden');
+    fab.classList.add('open');
+    fab.textContent='✕';
+    // mark current page
+    document.querySelectorAll('.mnu-item').forEach(function(b){
+      b.classList.toggle('on',b.getAttribute('data-p')===curPage);
+    });
+  }
+}
+function closeMenu(){
+  document.getElementById('menu-ol').classList.add('hidden');
+  var fab=document.getElementById('fab');
+  fab.classList.remove('open');
+  fab.textContent='☰';
+}
+
+function setTTab(t){
+  ['cd','sw','it'].forEach(function(id){
+    document.getElementById('tt-'+id).classList.toggle('on',id===t);
+    document.getElementById('ts-'+id).classList.toggle('on',id===t);
+  });
+}
+
+// COUNTDOWN
+var cdTotal=0,cdRem=null,cdRunning=false,cdIV=null;
+var CIRC_CD=2*Math.PI*90;
+function cdUpdate(){
+  var m=+document.getElementById('cd-m').value,s=+document.getElementById('cd-s').value;
+  document.getElementById('cd-mv').textContent=pad(m);
+  document.getElementById('cd-sv').textContent=pad(s);
+  var t=m*60+s;
+  document.getElementById('cd-txt').textContent=pad(Math.floor(t/60))+':'+pad(t%60);
+  document.getElementById('cd-arc').setAttribute('stroke-dashoffset','0');
+}
+function cdStart(){
+  if(cdRem===null){
+    cdTotal=(+document.getElementById('cd-m').value)*60+(+document.getElementById('cd-s').value);
+    if(!cdTotal)return;
+    cdRem=cdTotal;
+  }
+  cdRunning=true;
+  document.getElementById('cd-sliders').style.display='none';
+  document.getElementById('cd-startbtn').classList.add('hidden');
+  document.getElementById('cd-pausebtn').classList.remove('hidden');
+  document.getElementById('cd-done').setAttribute('opacity','0');
+  document.getElementById('cd-arc').setAttribute('stroke','#c8ff00');
+  document.getElementById('cd-txt').setAttribute('fill','#f0f0f0');
+  clearInterval(cdIV);
+  cdIV=setInterval(function(){
+    if(!cdRunning)return;
+    if(cdRem<=4&&cdRem>0)beep(660,0.08);
+    cdRem--;
+    document.getElementById('cd-arc').setAttribute('stroke-dashoffset',CIRC_CD*(1-cdRem/cdTotal));
+    document.getElementById('cd-txt').textContent=pad(Math.floor(cdRem/60))+':'+pad(cdRem%60);
+    if(cdRem<=0){
+      clearInterval(cdIV);cdRunning=false;
+      beep(440,0.4,0.4);setTimeout(function(){beep(880,0.4,0.4);},300);
+      document.getElementById('cd-arc').setAttribute('stroke','#00e87a');
+      document.getElementById('cd-txt').setAttribute('fill','#00e87a');
+      document.getElementById('cd-done').setAttribute('opacity','1');
+      document.getElementById('cd-pausebtn').classList.add('hidden');
+      document.getElementById('cd-startbtn').classList.remove('hidden');
+    }
+  },1000);
+}
+function cdPause(){
+  cdRunning=false;clearInterval(cdIV);
+  var pb=document.getElementById('cd-pausebtn'),sb=document.getElementById('cd-startbtn');
+  if(pb)pb.classList.add('hidden');
+  if(sb)sb.classList.remove('hidden');
+}
+function cdReset(){
+  cdRunning=false;clearInterval(cdIV);cdRem=null;
+  document.getElementById('cd-sliders').style.display='flex';
+  document.getElementById('cd-pausebtn').classList.add('hidden');
+  document.getElementById('cd-startbtn').classList.remove('hidden');
+  document.getElementById('cd-done').setAttribute('opacity','0');
+  document.getElementById('cd-arc').setAttribute('stroke','#c8ff00');
+  document.getElementById('cd-txt').setAttribute('fill','#f0f0f0');
+  cdUpdate();
+}
+
+// STOPWATCH
+var swElapsed=0,swRunning=false,swStart0=0,swRAF=null,swLaps=[];
+function swFrame(){
+  if(!swRunning)return;
+  swElapsed=Date.now()-swStart0;
+  var e=swElapsed,h=Math.floor(e/3600000),m=Math.floor((e%3600000)/60000),s=Math.floor((e%60000)/1000),ms=Math.floor((e%1000)/10);
+  var main=(h>0?pad(h)+':':'')+pad(m)+':'+pad(s);
+  document.getElementById('sw-main').textContent=main;
+  document.getElementById('sw-ms').textContent='.'+pad(ms);
+  swRAF=requestAnimationFrame(swFrame);
+}
+function swStart(){
+  swStart0=Date.now()-swElapsed;swRunning=true;
+  document.getElementById('sw-startbtn').classList.add('hidden');
+  document.getElementById('sw-stopbtn').classList.remove('hidden');
+  document.getElementById('sw-lapbtn').classList.remove('hidden');
+  swRAF=requestAnimationFrame(swFrame);
+}
+function swStop(){
+  swRunning=false;cancelAnimationFrame(swRAF);
+  var sb=document.getElementById('sw-stopbtn'),lb=document.getElementById('sw-lapbtn'),st=document.getElementById('sw-startbtn');
+  if(sb)sb.classList.add('hidden');if(lb)lb.classList.add('hidden');if(st)st.classList.remove('hidden');
+}
+function swLap(){
+  swLaps.unshift({t:swElapsed,n:swLaps.length+1});
+  var el=document.getElementById('sw-laps');el.classList.remove('hidden');
+  el.innerHTML=swLaps.map(function(l){var lm=Math.floor(l.t/60000),ls2=Math.floor((l.t%60000)/1000),lms=Math.floor((l.t%1000)/10);return'<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #252525;font-size:12px"><span style="color:#4a4a4a">LAP '+pad(l.n)+'</span><span style="font-family:\'Bebas Neue\',cursive;font-size:18px;color:#c8ff00">'+pad(lm)+':'+pad(ls2)+'.'+pad(lms)+'</span></div>';}).join('');
+}
+function swReset(){
+  swRunning=false;cancelAnimationFrame(swRAF);swElapsed=0;swLaps=[];
+  document.getElementById('sw-main').textContent='00:00';
+  document.getElementById('sw-ms').textContent='.00';
+  var sb=document.getElementById('sw-stopbtn'),lb=document.getElementById('sw-lapbtn'),st=document.getElementById('sw-startbtn');
+  if(sb)sb.classList.add('hidden');if(lb)lb.classList.add('hidden');if(st)st.classList.remove('hidden');
+  var el=document.getElementById('sw-laps');el.classList.add('hidden');el.innerHTML='';
+}
+
+// INTERVAL
+var itPh='idle',itCR=1,itTL=0,itIV=null,itW=40,itR=20,itN=8;
+var CIRC_IT=2*Math.PI*80;
+function itTick(){
+  if(itTL<=4&&itTL>0)beep(660,0.06);
+  itTL--;
+  if(itTL<=0){
+    clearInterval(itIV);itIV=null;
+    if(itPh==='work'){beep(440,0.25);itPh='rest';itTL=itR;}
+    else if(itCR>=itN){beep(220,0.7);itFinish();return;}
+    else{beep(880,0.15);itCR++;itPh='work';itTL=itW;}
+    itUI();itIV=setInterval(itTick,1000);return;
+  }
+  itUI();
+}
+function itUI(){
+  var isW=itPh==='work',total=isW?itW:itR,pct=(total-itTL)/total;
+  document.getElementById('it-arc').setAttribute('stroke-dashoffset',CIRC_IT*(1-pct));
+  document.getElementById('it-arc').setAttribute('stroke',isW?'#c8ff00':'#00e87a');
+  document.getElementById('it-time').setAttribute('fill',isW?'#c8ff00':'#00e87a');
+  document.getElementById('it-phase').textContent=isW?'LAVORO':'RIPOSO';
+  document.getElementById('it-time').textContent=itTL;
+  document.getElementById('it-round').textContent=itCR+' / '+itN;
+}
+function itStart(){
+  itW=+document.getElementById('it-w').value;itR=+document.getElementById('it-r').value;itN=+document.getElementById('it-n').value;
+  itCR=1;itPh='work';itTL=itW;
+  document.getElementById('it-cfg').classList.add('hidden');
+  document.getElementById('it-run').classList.remove('hidden');
+  document.getElementById('it-done-msg').classList.add('hidden');
+  itUI();clearInterval(itIV);itIV=setInterval(itTick,1000);
+}
+function itFinish(){
+  clearInterval(itIV);itIV=null;itPh='idle';
+  document.getElementById('it-run').classList.add('hidden');
+  document.getElementById('it-cfg').classList.remove('hidden');
+  document.getElementById('it-done-msg').classList.remove('hidden');
+}
+function itStop(){
+  clearInterval(itIV);itIV=null;itPh='idle';
+  var r=document.getElementById('it-run'),c=document.getElementById('it-cfg');
+  if(r)r.classList.add('hidden');if(c)c.classList.remove('hidden');
+}
+
+// WORKOUT
+var wkData={},wkExs=[],wkCY=new Date().getFullYear(),wkCM=new Date().getMonth(),wkDate=todayStr(),wkInited=false;
+function wkInit(){
+  if(!wkInited){wkData=LS.get('fc-wk',{});wkExs=LS.get('fc-ex',DEF_EX.slice());wkInited=true;}
+  wkRender();
+}
+function wkRender(){
+  var fd=new Date(wkCY,wkCM,1).getDay(),off=(fd+6)%7,dim=new Date(wkCY,wkCM+1,0).getDate();
+  var cal='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><button class="btn sm" onclick="wkPM()">‹</button><div class="bebas" style="font-size:20px;letter-spacing:2px">'+MONTHS[wkCM]+' '+wkCY+'</div><button class="btn sm" onclick="wkNM()">›</button></div><div class="cgrid">'+WDAYS.map(function(d){return'<div class="cdow">'+d+'</div>';}).join('');
+  for(var i=0;i<off;i++)cal+='<div></div>';
+  for(var d=1;d<=dim;d++){var k=wkCY+'-'+pad(wkCM+1)+'-'+pad(d),sel=k===wkDate,dot=(wkData[k]&&wkData[k].exercises&&wkData[k].exercises.length>0);cal+='<button class="cday'+(sel?' sel':'')+(dot?' dot':'')+'\" onclick=\"wkSelDate(\''+k+'\')">'+d+'</button>';}
+  cal+='</div>';
+  document.getElementById('wk-cal').innerHTML=cal;
+  document.getElementById('wk-date-lbl').textContent=wkDate;
+  var day=wkData[wkDate]||{exercises:[]};
+  document.getElementById('wk-count').textContent=day.exercises.length+' ESERCIZI';
+  document.getElementById('wk-exlist').innerHTML=day.exercises.map(wkExHTML).join('');
+  document.getElementById('wk-extags').innerHTML=wkExs.map(function(n){return'<button class="extag" onclick="wkAddEx(this.dataset.n)" data-n="'+n.replace(/"/g,'&quot;')+'">'+n+'</button>';}).join('');
+}
+function wkExHTML(ex){
+  var html='<div class="excard"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="bebas ac" style="font-size:20px">'+ex.name+'</div><button class="btn sm bd" onclick="wkRmEx(\''+ex.id+'\')">×</button></div><div class="sgrid"><div class="shdr">SET</div><div class="shdr">KG</div><div class="shdr">REPS</div><div></div></div>';
+  ex.sets.forEach(function(s,i){html+='<div class="sgrid"><div style="text-align:center;font-size:11px;color:#4a4a4a">'+(i+1)+'</div><input class="sinp" type="number" value="'+s.weight+'" min="0" step="0.5" onchange="wkUS(\''+ex.id+'\','+i+',\'weight\',+this.value)"/><input class="sinp" type="number" value="'+s.reps+'" min="1" onchange="wkUS(\''+ex.id+'\','+i+',\'reps\',+this.value)"/><button onclick="wkRmSet(\''+ex.id+'\','+i+')" style="color:#4a4a4a;font-size:16px;cursor:pointer">×</button></div>';});
+  html+='<button class="btn sm bg" style="margin-top:4px" onclick="wkAddSet(\''+ex.id+'\')">+ SET</button></div>';
+  return html;
+}
+function wkSave(){LS.set('fc-wk',wkData);}
+function wkSelDate(d){wkDate=d;wkRender();}
+function wkPM(){if(wkCM===0){wkCM=11;wkCY--;}else wkCM--;wkRender();}
+function wkNM(){if(wkCM===11){wkCM=0;wkCY++;}else wkCM++;wkRender();}
+function wkEnsureDay(){if(!wkData[wkDate])wkData[wkDate]={exercises:[]};}
+function wkAddEx(name){wkEnsureDay();wkData[wkDate].exercises.push({id:uid(),name:name,sets:[{weight:0,reps:10}]});wkSave();wkRender();}
+function wkRmEx(id){wkEnsureDay();wkData[wkDate].exercises=wkData[wkDate].exercises.filter(function(e){return e.id!==id;});wkSave();wkRender();}
+function wkUS(id,si,field,val){wkEnsureDay();wkData[wkDate].exercises=wkData[wkDate].exercises.map(function(e){if(e.id!==id)return e;var sets=e.sets.map(function(s,i){if(i!==si)return s;var ns={weight:s.weight,reps:s.reps};ns[field]=val;return ns;});return{id:e.id,name:e.name,sets:sets};});wkSave();}
+function wkAddSet(id){wkEnsureDay();wkData[wkDate].exercises=wkData[wkDate].exercises.map(function(e){return e.id===id?{id:e.id,name:e.name,sets:e.sets.concat([{weight:0,reps:10}])}:e;});wkSave();wkRender();}
+function wkRmSet(id,si){wkEnsureDay();wkData[wkDate].exercises=wkData[wkDate].exercises.map(function(e){return e.id===id?{id:e.id,name:e.name,sets:e.sets.filter(function(_,i){return i!==si;})}:e;});wkSave();wkRender();}
+function wkShowAdd(){document.getElementById('wk-addrow').innerHTML='<div class="row"><input class="inp" id="wk-ni" style="flex:1" placeholder="Nome esercizio..." onkeydown="if(event.key===\'Enter\')wkAddCustom()"/><button class="btn ba" onclick="wkAddCustom()">+</button></div>';document.getElementById('wk-ni').focus();}
+function wkAddCustom(){var inp=document.getElementById('wk-ni');if(!inp)return;var n=inp.value.trim();if(n&&wkExs.indexOf(n)===-1){wkExs.push(n);LS.set('fc-ex',wkExs);}document.getElementById('wk-addrow').innerHTML='<button class="btn sm" onclick="wkShowAdd()">+ PERSONALIZZATO</button>';wkRender();}
+
+// JOURNAL
+var jnData={},jnInited=false;
+function jnInit(){if(!jnInited){jnData=LS.get('fc-jn',{});jnInited=true;}document.getElementById('jn-date').value=todayStr();jnLoad();}
+function jnToday(){document.getElementById('jn-date').value=todayStr();jnLoad();}
+function jnLoad(){var d=document.getElementById('jn-date').value,text=(jnData[d]&&jnData[d].text)||'';document.getElementById('jn-text').value=text;document.getElementById('jn-hint').textContent=text?text.length+' caratteri · salvato':'';jnHistory();}
+function jnSave(){var d=document.getElementById('jn-date').value,text=document.getElementById('jn-text').value;jnData[d]={text:text};LS.set('fc-jn',jnData);document.getElementById('jn-hint').textContent=text?text.length+' caratteri · salvato':'';jnHistory();}
+function jnHistory(){var all=Object.keys(jnData).filter(function(k){return jnData[k]&&jnData[k].text&&jnData[k].text.trim();}).sort().reverse(),cur=document.getElementById('jn-date').value;if(!all.length){document.getElementById('jn-history').innerHTML='';return;}document.getElementById('jn-history').innerHTML='<div class="stitle">ULTIME ANNOTAZIONI</div>'+all.slice(0,8).map(function(d){return'<button class="ecard'+(d===cur?' on':'')+'\" onclick=\"document.getElementById(\'jn-date\').value=\''+d+'\';jnLoad()\"><div style="font-size:10px;color:#c8ff00;font-family:\'Bebas Neue\',cursive;letter-spacing:2px;margin-bottom:4px">'+d+'</div><div style="font-size:12px;color:#4a4a4a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+jnData[d].text.slice(0,80)+'…</div></button>';}).join('');}
+
+// NUTRITION — tipi pasto dinamici
+var ntData={},ntType='',ntEditId=null,ntInited=false,ntMgrOpen=false;
+function getMealTypes(){return LS.get('fc-mealtypes',DEF_MEAL_TYPES.slice());}
+function saveMealTypes(arr){LS.set('fc-mealtypes',arr);}
+function ntInit(){
+  if(!ntInited){ntData=LS.get('fc-nt',{});ntInited=true;}
+  var types=getMealTypes();
+  if(!ntType||types.indexOf(ntType)===-1)ntType=types[0];
+  document.getElementById('nt-date').value=todayStr();
+  ntRenderTypes();
+  ntLoad();
+}
+function ntToday(){document.getElementById('nt-date').value=todayStr();ntLoad();}
+function ntRenderTypes(){
+  var types=getMealTypes();
+  document.getElementById('nt-types').innerHTML=types.map(function(t){return'<button class="mtbtn'+(t===ntType?' on':'')+'\" onclick=\"ntSetType(\''+t.replace(/'/g,"\\'")+'\')\">'+t+'</button>';}).join('');
+  // render chips in manager
+  document.getElementById('nt-chips').innerHTML=types.map(function(t){return'<span class="meal-chip">'+t+'<button onclick="ntRemoveType(\''+t.replace(/'/g,"\\'")+'\')" title="Rimuovi">×</button></span>';}).join('');
+}
+function ntSetType(t){ntType=t;ntRenderTypes();}
+function ntToggleMgr(){
+  ntMgrOpen=!ntMgrOpen;
+  document.getElementById('nt-mgr').classList.toggle('hidden',!ntMgrOpen);
+  document.getElementById('nt-mgr-btn').textContent=ntMgrOpen?'✕ CHIUDI':'⚙ TIPI';
+}
+function ntAddType(){
+  var inp=document.getElementById('nt-new-type'),val=inp.value.trim();
+  if(!val)return;
+  var types=getMealTypes();
+  if(types.indexOf(val)===-1){types.push(val);saveMealTypes(types);}
+  inp.value='';
+  ntRenderTypes();
+}
+function ntRemoveType(t){
+  var types=getMealTypes().filter(function(x){return x!==t;});
+  if(!types.length)types=DEF_MEAL_TYPES.slice();
+  saveMealTypes(types);
+  if(ntType===t)ntType=types[0];
+  ntRenderTypes();
+}
+function ntLoad(){var d=document.getElementById('nt-date').value,meals=(ntData[d]&&ntData[d].meals)||[];ntRender(meals);}
+function ntRender(meals){
+  if(!meals.length){document.getElementById('nt-list').innerHTML='<div style="text-align:center;padding:40px 20px;color:#4a4a4a;font-size:12px">Nessun pasto registrato.</div>';return;}
+  var types=getMealTypes();
+  var grouped=types.map(function(t){return{t:t,items:meals.filter(function(m){return m.type===t;})};}).filter(function(g){return g.items.length;});
+  // also catch meals with custom types no longer in list
+  var knownTypes=types;
+  var otherItems=meals.filter(function(m){return knownTypes.indexOf(m.type)===-1;});
+  if(otherItems.length)grouped.push({t:'Altro',items:otherItems});
+  document.getElementById('nt-list').innerHTML=grouped.map(function(g){
+    return'<div class="bebas ac" style="font-size:18px;letter-spacing:2px;margin-bottom:8px;border-bottom:1px solid #252525;padding-bottom:6px">'+g.t+'</div>'+
+    g.items.map(function(item){
+      if(ntEditId===item.id)return'<div class="mitem"><div class="row"><input class="inp" id="nt-edit-'+item.id+'" style="flex:1" value="'+item.food.replace(/"/g,'&quot;')+'" onkeydown="if(event.key===\'Enter\')ntSaveEdit(\''+item.id+'\')"/><button class="btn sm ba" onclick="ntSaveEdit(\''+item.id+'\')">✓</button><button class="btn sm bg" onclick="ntCancelEdit()">✕</button></div></div>';
+      return'<div class="mitem"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:13px;flex:1">'+item.food+'</span><div style="display:flex;gap:6px"><button class="btn sm bg" onclick="ntStartEdit(\''+item.id+'\')">✎</button><button class="btn sm bd" onclick="ntRm(\''+item.id+'\')">×</button></div></div></div>';
+    }).join('');
+  }).join('');
+  if(ntEditId){var i=document.getElementById('nt-edit-'+ntEditId);if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}}
+}
+function ntAdd(){var inp=document.getElementById('nt-inp'),d=document.getElementById('nt-date').value;if(!inp.value.trim())return;if(!ntData[d])ntData[d]={meals:[]};ntData[d].meals.push({id:uid(),type:ntType,food:inp.value.trim()});LS.set('fc-nt',ntData);inp.value='';ntLoad();}
+function ntRm(id){var d=document.getElementById('nt-date').value;ntData[d].meals=ntData[d].meals.filter(function(m){return m.id!==id;});LS.set('fc-nt',ntData);ntLoad();}
+function ntStartEdit(id){ntEditId=id;ntLoad();}
+function ntCancelEdit(){ntEditId=null;ntLoad();}
+function ntSaveEdit(id){var d=document.getElementById('nt-date').value,inp=document.getElementById('nt-edit-'+id);if(!inp)return;ntData[d].meals=ntData[d].meals.map(function(m){return m.id===id?{id:m.id,type:m.type,food:inp.value}:m;});LS.set('fc-nt',ntData);ntEditId=null;ntLoad();}
+
+// PHOTOS
+var phPhotos=[],phInited=false;
+function phInit(){if(!phInited){phPhotos=LS.get('fc-ph',[]);phInited=true;}document.getElementById('ph-date').value=todayStr();phRender();}
+function phRender(){
+  var el=document.getElementById('ph-grid');
+  if(!phPhotos.length){el.innerHTML='<div class="empty"><div style="font-size:48px;margin-bottom:12px">📸</div>Nessuna foto ancora.</div>';return;}
+  el.innerHTML='<div class="pgrid">'+phPhotos.map(function(p){return'<button class="pcard" onclick="phOpenLbox(\''+p.id+'\')"><img src="'+p.dataUrl+'" alt=""/><div style="padding:8px 10px"><div class="bebas ac" style="font-size:14px">'+p.date+'</div>'+(p.note?'<div style="font-size:10px;color:#4a4a4a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.note+'</div>':'')+'</div></button>';}).join('')+'</div>';
+}
+function phAdd(input){
+  var date=document.getElementById('ph-date').value,note=document.getElementById('ph-note').value,files=Array.from(input.files),i=0;
+  function next(){if(i>=files.length){LS.set('fc-ph',phPhotos);document.getElementById('ph-note').value='';input.value='';phRender();return;}var fr=new FileReader();fr.onload=function(){phPhotos.unshift({id:uid(),date:date,note:note,dataUrl:fr.result});i++;next();};fr.readAsDataURL(files[i]);}
+  next();
+}
+function phOpenLbox(id){
+  var p=phPhotos.find(function(x){return x.id===id;});if(!p)return;
+  var lb=document.getElementById('ph-lbox');
+  lb.innerHTML='<img src="'+p.dataUrl+'" alt="" onclick="event.stopPropagation()" style="max-width:100%;max-height:65vh;object-fit:contain;border-radius:4px"/><div style="margin-top:16px;text-align:center"><div class="bebas ac" style="font-size:22px">'+p.date+'</div>'+(p.note?'<div style="font-size:12px;color:#4a4a4a;margin-top:4px">'+p.note+'</div>':'')+'</div><div style="display:flex;gap:12px;margin-top:20px" onclick="event.stopPropagation()"><button class="btn bg" onclick="phCloseLbox()">✕ CHIUDI</button><button class="btn bd" onclick="phRmFromLbox(\''+id+'\')">🗑 ELIMINA</button></div>';
+  lb.classList.remove('hidden');
+}
+function phCloseLbox(){document.getElementById('ph-lbox').classList.add('hidden');}
+function phRmFromLbox(id){phPhotos=phPhotos.filter(function(p){return p.id!==id;});LS.set('fc-ph',phPhotos);phCloseLbox();phRender();}
+
+// SETTINGS — SFONDO
+function settInit(){
+  // sync swatch active state
+  var saved=LS.get('fc-bg',{type:'color',value:'#070707'});
+  document.querySelectorAll('.bg-swatch').forEach(function(s){
+    s.classList.toggle('on',saved.type==='color'&&s.getAttribute('data-color')===saved.value);
+  });
+  if(saved.type==='image'){
+    var thumb=document.getElementById('bg-img-thumb');
+    if(thumb)thumb.src=saved.value;
+    document.getElementById('bg-img-preview').classList.remove('hidden');
+  } else {
+    document.getElementById('bg-img-preview').classList.add('hidden');
+  }
+}
+function applyBg(bg){
+  if(bg.type==='color'){
+    document.body.style.background=bg.value;
+    document.documentElement.style.background=bg.value;
+    document.body.style.backgroundImage='';
+    document.documentElement.style.backgroundImage='';
+  } else if(bg.type==='image'){
+    document.body.style.backgroundImage='url('+bg.value+')';
+    document.body.style.backgroundSize='cover';
+    document.body.style.backgroundPosition='center';
+    document.body.style.backgroundAttachment='fixed';
+    document.documentElement.style.backgroundImage='url('+bg.value+')';
+    document.documentElement.style.backgroundSize='cover';
+    document.documentElement.style.backgroundPosition='center';
+  }
+  LS.set('fc-bg',bg);
+}
+function setBg(color,btn){
+  applyBg({type:'color',value:color});
+  document.querySelectorAll('.bg-swatch').forEach(function(s){s.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  document.getElementById('bg-img-preview').classList.add('hidden');
+}
+function setBgCustomColor(){
+  var color=document.getElementById('bg-custom-color').value;
+  applyBg({type:'color',value:color});
+  document.querySelectorAll('.bg-swatch').forEach(function(s){s.classList.remove('on');});
+  document.getElementById('bg-img-preview').classList.add('hidden');
+}
+function setBgImg(input){
+  if(!input.files||!input.files[0])return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    applyBg({type:'image',value:fr.result});
+    document.querySelectorAll('.bg-swatch').forEach(function(s){s.classList.remove('on');});
+    var thumb=document.getElementById('bg-img-thumb');
+    if(thumb)thumb.src=fr.result;
+    document.getElementById('bg-img-preview').classList.remove('hidden');
+    input.value='';
+  };
+  fr.readAsDataURL(input.files[0]);
+}
+function removeBgImg(){
+  setBg('#070707',document.querySelector('.bg-swatch[data-color="#070707"]'));
+  document.getElementById('bg-img-preview').classList.add('hidden');
+}
+function resetBg(){
+  setBg('#070707',document.querySelector('.bg-swatch[data-color="#070707"]'));
+  document.getElementById('bg-custom-color').value='#070707';
+  document.getElementById('bg-img-preview').classList.add('hidden');
+}
+
+// INIT
+cdUpdate();
+// Applica sfondo salvato all'avvio
+(function(){
+  var saved=LS.get('fc-bg',null);
+  if(saved)applyBg(saved);
+})();
+
+// SERVICE WORKER
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
